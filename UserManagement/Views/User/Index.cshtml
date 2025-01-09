@@ -1,0 +1,500 @@
+﻿
+@using UserManagement.Service.ViewModel.Identity.AppRole
+@using UserManagement.Service.ViewModel.Identity.AppUsers
+@model List<UserResponseViewModel>
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+<!-- Toastr CSS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+
+
+
+<div class="container">
+    <div class="page-inner">
+        <div class="page-header">
+            <h3 class="fw-bold mb-3">Users</h3>
+            <ul class="breadcrumbs mb-3">
+                <li class="nav-home">
+                    <a asp-action="Index" asp-controller="User">
+                        <i class="icon-home"></i>
+                    </a>
+                </li>
+                <li class="separator">
+                    <i class="icon-arrow-right"></i>
+                </li>
+                <li class="nav-item">
+                    <a asp-action="Index" asp-controller="Home">Dashboard</a>
+                </li>
+                <li class="separator">
+                    <i class="icon-arrow-right"></i>
+                </li>
+                <li class="nav-item">
+                    <a asp-action="Index" asp-controller="User">User</a>
+                </li>
+            </ul>
+        </div>
+        <!-- Image Table Start -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex align-items-center">
+                            <h4 class="card-title">User List</h4>
+                            <a data-bs-toggle="modal" data-bs-target="#AddModal" class="btn btn-primary ms-auto" title="Add Role">
+                                <i class="fa fa-upload"></i> Add User
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Image List Table -->
+                        <div class="table-responsive">
+                            <table id="myTable" class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Id</th>
+                                        <th>First Name</th>
+                                        <th>Last Name</th>
+                                        <th>Email</th>
+
+                                        <th>Status</th>
+
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model != null && Model.Any())
+                                    {
+                                        foreach (var item in Model)
+                                        {
+
+                                            <tr>
+                                                <td>@item.Id</td>
+                                                <td>@item.first_name</td>
+                                                <td>@item.last_name</td>
+                                                <td>@item.Email</td>
+
+                                                <td>@item.is_active</td>
+                                                <td>
+
+                                                    <a href="#" data-bs-toggle="modal" data-bs-target="#editModal" onclick="getModalData(@item.Id,'@item.first_name','@item.last_name','@item.PhoneNumber','@item.is_active')" title="Edit Role">
+                                                        <i class="fa fa-edit"></i>
+                                                    </a>
+
+                                                    <a href="#" data-bs-toggle="modal" data-bs-target="#AssignRoleModal" title="Assign Role" onclick="getUserRoles(@item.Id)">
+                                                        <i class="fa fa-pen"></i>
+                                                    </a>
+                                                    <a href="#" data-bs-toggle="modal" data-bs-target="#deleteModal" onclick="daleteData(@item.Id)" title="Delete Role">
+                                                        <i class="fa fa-trash"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+</div>
+
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Are you sure?</h5>
+            </div>
+            <div class="modal-body">
+                <p>You are about to delete this user.</p>
+                <form method="post" id="DeleteForm" asp-action="Delete" asp-controller="User">
+                    <input type="hidden" name="Id" id="deleteid" />
+                    <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Role Modal -->
+<div class="modal fade" id="AssignRoleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="AssignRoleModalLabel">Assign Roles</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" id="AssignRoleForm" asp-action="AssignRoles" asp-controller="User">
+                    <input type="hidden" name="UserId" id="user_id" />
+
+                    <!-- Loop through all roles and create checkboxes -->
+                    <div id="roleCheckboxes">
+                        @foreach (var role in (List<RoleResponseViewModel>)TempData["Roles"])
+                        {
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="roleIds" value="@role.Id" id="role_@role.Id" />
+                                <label class="form-check-label" for="role_@role.Id">@role.Name</label>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assignModalLabel">Edit User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" id="EditForm" asp-action="Edit" asp-controller="User">
+                    <input type="hidden" name="Id" id="editId" />
+
+                    <!-- First Name and Last Name Row -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <input type="text" name="first_name" class="form-control" id="first_name" placeholder="Enter First Name" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <input type="text" name="last_name" class="form-control" id="last_name" placeholder="Enter Last Name" />
+                            </div>
+                        </div>
+                    </div>
+
+                   
+
+                    <!-- Phone Number Row -->
+                    <div class="mb-3">
+                        <input type="number" name="PhoneNumber" class="form-control" id="PhoneNumber" placeholder="Enter Phone Number" />
+                    </div>
+
+                  
+
+                    <!-- Status Checkbox Row -->
+                    <div class="form-check">
+                        <label class="form-check-label" for="is_active">Status</label>
+                        <input class="form-check-input" type="checkbox" name="is_active" id="is_active" />
+                    </div>
+
+                    <center>
+                        <input type="submit" class="btn btn-info btn-sm" value="Edit" />
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    </center>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Add Modal -->
+
+<div class="modal fade" id="AddModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assignModalLabel">Add User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" id="createUserForm" asp-action="Create" asp-controller="User">
+
+                    <!-- First Name and Last Name Row -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <input type="text" name="first_name" class="form-control" placeholder="Enter First Name" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <input type="text" name="last_name" class="form-control" placeholder="Enter Last Name" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Email Row -->
+                    <div class="mb-3">
+                        <input type="email" name="Email" class="form-control" placeholder="Enter Email" />
+                    </div>
+
+                    <!-- Phone Number Row -->
+                    <div class="mb-3">
+                        <input type="text" name="PhoneNumber" class="form-control" placeholder="Enter Phone Number" />
+                    </div>
+
+                    <!-- Password Row -->
+                    <div class="mb-3">
+                        <input type="password" name="Password" class="form-control" placeholder="Enter Password" />
+                    </div>
+
+                 
+                    <center>
+                        <input type="submit" class="btn btn-info btn-sm" value="Add" />
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    </center>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+@section Scripts {
+    <!-- Include jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script>
+
+             $(document).ready(function () {
+             $('#myTable').DataTable();
+
+
+             $('#createUserForm').submit(function (e) {
+                 e.preventDefault();
+
+                 var form = $(this);
+                 var formData = form.serialize();
+
+                 $.ajax({
+                     url: form.attr('action'),
+                     method: 'POST',
+                     data: formData,
+                     success: function (response) {
+                         if (response.error) {
+
+                             toastr.error(response.message,'Error');
+
+
+                         }
+                         else
+                         {
+                              $('#AddModal').modal('hide');
+                             toastr.success(response.message, 'Success');
+                           setTimeout(function () {
+                                 location.reload();  // Refresh the page after a delay
+                             }, 1500);
+
+
+                         }
+                     },
+                     error: function () {
+
+                         toastr.error('An error occurred. Please try again later.', 'Error');
+                     }
+                 });
+             });
+
+
+             $('#EditForm').submit(function (e) {
+                 e.preventDefault();
+
+         var form = $(this);
+         var isActive = $('#is_active').prop('checked') ? 'true' : 'false';
+         var formData = form.serializeArray(); // Get all form data
+         formData = formData.filter(function(item) {
+             return item.name !== 'is_active';
+         });
+         formData.push({ name: 'is_active', value: isActive });
+
+        console.log(formData)
+                 $.ajax({
+                     url: form.attr('action'),
+                     method: 'POST',
+                     data: formData,
+                     success: function (response) {
+                         if (response.error) {
+
+                             toastr.error(response.message,'Error');
+
+
+                         }
+                         else
+                         {
+                             $('#editModal').modal('hide');
+                              toastr.success(response.message,'Success');
+                               setTimeout(function () {
+                                 location.reload();  // Refresh the page after a delay
+                             }, 1500);
+                         }
+                     },
+                     error: function () {
+
+                         toastr.error('An error occurred. Please try again later.', 'Error');
+                     }
+                 });
+             });
+
+
+
+
+             $('#DeleteForm').submit(function (e) {
+                 e.preventDefault();
+
+                 var form = $(this);
+                 var formData = form.serialize();
+
+                 $.ajax({
+                     url: form.attr('action'),
+                     method: 'POST',
+                     data: formData,
+                     success: function (response) {
+                         if (response.error) {
+
+                              toastr.error(response.message,'Error');
+
+                         }
+                         else
+                         {
+
+                             $('#deleteModal').modal('hide');
+                             toastr.success(response.message,'Success');
+                              setTimeout(function () {
+                                 location.reload();
+                             }, 1500);
+                         }
+                     },
+                     error: function () {
+
+                         toastr.error('An error occurred. Please try again later.', 'Error');
+                     }
+                 });
+             });
+
+
+
+
+             $('#AssignRoleForm').submit(function (e) {
+                 e.preventDefault();
+
+                 var form = $(this);
+                 var formData = form.serialize();
+
+                 $.ajax({
+                     url: form.attr('action'),
+                     method: 'POST',
+                     data: formData,
+                     success: function (response) {
+                         if (response.error) {
+
+                             toastr.error(response.message,'Error');
+
+
+                         }
+                         else
+                         {
+                              $('#AssignRoleModal').modal('hide');
+                             toastr.success(response.message, 'Success');
+                           setTimeout(function () {
+                                 location.reload();  // Refresh the page after a delay
+                             }, 1500);
+
+
+                         }
+                     },
+                     error: function () {
+
+                         toastr.error('An error occurred. Please try again later.', 'Error');
+                     }
+                 });
+             });
+
+
+
+
+         });
+
+
+             
+         $('#AddModal').on('show.bs.modal', function (e) {
+          
+            $('#createUserForm')[0].reset();
+
+        });
+
+         function getModalData(id, first_name,last_name,PhoneNumber,is_active) {
+               
+               $('#editId').val(id);
+               $('#first_name').val(first_name);
+                 $('#last_name').val(last_name);
+        $('#PhoneNumber').val(PhoneNumber);
+
+
+             if (is_active=='True') {
+                 $('#is_active').prop('checked', true); 
+             } else {
+                 console.log("false")
+                 $('#is_active').prop('checked', false); 
+             }
+
+              
+           }
+
+                   function getUserRoles(userId) {
+            // Set the user ID in the hidden input field
+            $('#user_id').val(userId);
+
+            // Fetch the user's assigned roles (assuming an API or data from the server)
+            $.ajax({
+                url: '/User/GetUserRoles', // You may need to adjust this URL
+                method: 'GET',
+                data: { userId: userId },
+                success: function(response) {
+                    if (!response.error) {
+
+                        // Get all the assigned role IDs from the response
+                        var assignedRoles = response.message; // This should be an array of role IDs
+
+                        // Loop through each checkbox and check it if the role is assigned to the user
+                        $('#roleCheckboxes input[type="checkbox"]').each(function(c) {
+                           
+                            var roleId = $(this).val();
+                            if (assignedRoles.includes(parseInt(roleId))) {
+                                $(this).prop('checked', true);  // Check the checkbox if the user has this role
+                            } else {
+                                $(this).prop('checked', false);  // Uncheck the checkbox if the user does not have this role
+                            }
+                        });
+                    } else {
+                        toastr.error('Failed to load user roles');
+                    }
+                },
+                error: function() {
+                    toastr.error('An error occurred while fetching roles');
+                }
+            });
+        }
+
+
+
+                       function daleteData(id)
+                       {
+                   $('#deleteid').val(id);
+                       }
+    </script>
+}
+
